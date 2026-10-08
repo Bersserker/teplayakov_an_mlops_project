@@ -1,12 +1,11 @@
-"""Preprocess features inside cross-validation and select the best classifier."""
-
+# pipeline.py
 from sklearn.compose import ColumnTransformer
 from sklearn.impute import SimpleImputer
 from sklearn.model_selection import GridSearchCV, StratifiedKFold
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
-from src.model_training.models_for_training import MODEL_NAMES, PARAM_GRIDS, build_model
+from src.model_training.modeling import MODEL_NAMES, PARAM_GRIDS, build_model
 
 
 def create_pipeline(

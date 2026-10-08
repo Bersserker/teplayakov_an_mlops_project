@@ -1,6 +1,6 @@
 """Схемы валидации данных
 Схемы Pandera для исходных и очищенных наборов данных для кредитного скоринга.
-Обе схемы требуют наличия всех ожидаемых столбцов и отклоняют записи с пропущенными значениями. 
+Обе схемы требуют наличия всех ожидаемых столбцов и отклоняют записи с пропущенными значениями.
 Дополнительные столбцы допускаются; значения приводятся к заявленным типам.
 """
 
@@ -12,7 +12,9 @@ RAW_SCHEMA = pa.DataFrameSchema(
         "ID": pa.Column("int64", pa.Check.ge(0), nullable=False),
         "LIMIT_BAL": pa.Column("float64", pa.Check.ge(0), nullable=False),
         "SEX": pa.Column("int64", pa.Check.isin([1, 2]), nullable=False),
-        "EDUCATION": pa.Column("int64", pa.Check.isin([0, 1, 2, 3, 4, 5, 6]), nullable=False),
+        "EDUCATION": pa.Column(
+            "int64", pa.Check.isin([0, 1, 2, 3, 4, 5, 6]), nullable=False
+        ),
         "MARRIAGE": pa.Column("int64", pa.Check.isin([0, 1, 2, 3]), nullable=False),
         "AGE": pa.Column("int64", pa.Check.ge(0), nullable=False),
         "PAY_0": pa.Column("int64", pa.Check.ge(-3), nullable=False),
@@ -33,7 +35,9 @@ RAW_SCHEMA = pa.DataFrameSchema(
         "PAY_AMT4": pa.Column("float64", pa.Check.ge(0), nullable=False),
         "PAY_AMT5": pa.Column("float64", pa.Check.ge(0), nullable=False),
         "PAY_AMT6": pa.Column("float64", pa.Check.ge(0), nullable=False),
-        "default.payment.next.month": pa.Column("int64", pa.Check.isin([0, 1]), nullable=False),
+        "default.payment.next.month": pa.Column(
+            "int64", pa.Check.isin([0, 1]), nullable=False
+        ),
     },
     index=pa.Index("int64", nullable=False),
     coerce=True,

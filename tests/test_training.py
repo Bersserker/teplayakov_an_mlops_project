@@ -1,15 +1,18 @@
 """Training, model selection, and saved artifact regression checks."""
 
 import importlib
+import json
 
 import joblib
 import mlflow
 import numpy as np
 import pandas as pd
 import pytest
+from sklearn.metrics import f1_score, precision_score, recall_score, roc_auc_score
 
 from src.data.validation import PROCESSED_SCHEMA
-from src.model_training.models_for_training import MODEL_NAMES
+from src.features.build_features import build_features
+from src.model_training.modeling import MODEL_NAMES
 from src.model_training.pipeline import create_pipeline
 
 training = importlib.import_module("src.model_training.train")
@@ -34,7 +37,7 @@ def credit_data():
 
 SMALL_GRIDS = {
     "catboost": {"iterations": [5], "depth": [2]},
-    "logistic_regression": {"C": [1.0]},
+    "log_reg": {"C": [1.0]},
     "random_forest": {"n_estimators": [5], "max_depth": [2]},
 }
 
@@ -46,14 +49,15 @@ def test_search_compares_all_models(credit_data):
         SMALL_GRIDS,
         n_jobs=1,
     )
-    search.fit(credit_data, credit_data["default"])
+    features = build_features(credit_data).replace([np.inf, -np.inf], np.nan)
+    search.fit(features, credit_data["default"])
     assert len(search.cv_results_["params"]) == len(MODEL_NAMES)
     assert len({type(p["classifier"]) for p in search.cv_results_["params"]}) == 3
     # The preprocessor excludes the target and record identifier.
-    changed = credit_data.copy()
+    changed = features.copy()
     changed["default"] = 1 - changed["default"]
     changed["id"] += 10000
-    np.testing.assert_array_equal(search.predict(credit_data), search.predict(changed))
+    np.testing.assert_array_equal(search.predict(features), search.predict(changed))
 
 
 @pytest.mark.parametrize("name", MODEL_NAMES)
@@ -63,12 +67,18 @@ def test_train_saves_and_registers_reloadable_model(
     monkeypatch.setattr(training, "MLFLOW_DIR", tmp_path / "mlflow")
     model_path = tmp_path / "models" / "best_model.joblib"
     monkeypatch.setattr(training, "BEST_MODEL_PATH", model_path)
+    reports_dir = tmp_path / "reports"
+    monkeypatch.setattr(training, "REPORTS_DIR", reports_dir)
     pipeline, metrics = training.train(
         credit_data, models=[name], param_grid={name: SMALL_GRIDS[name]}, n_jobs=1
     )
-    features = credit_data[
-        training.NUMERIC_FEATURES + training.CATEGORICAL_FEATURES
-    ].astype(float)
+    features = (
+        build_features(credit_data)
+        .replace([np.inf, -np.inf], np.nan)[
+            training.NUMERIC_FEATURES + training.CATEGORICAL_FEATURES
+        ]
+        .astype(float)
+    )
     expected = pipeline.predict(features)
     np.testing.assert_array_equal(joblib.load(model_path).predict(features), expected)
     registered = mlflow.sklearn.load_model("models:/CreditDefaultModel/1")
@@ -78,6 +88,29 @@ def test_train_saves_and_registers_reloadable_model(
     test_reference = pd.read_csv(model_path.parent / "test_reference.csv")
     assert len(train_reference) + len(test_reference) == len(credit_data)
     assert set(train_reference.id).isdisjoint(test_reference.id)
+    test_features = (
+        build_features(test_reference)
+        .replace([np.inf, -np.inf], np.nan)[
+            training.NUMERIC_FEATURES + training.CATEGORICAL_FEATURES
+        ]
+        .astype(float)
+    )
+    y_test = test_reference["default"]
+    predictions = pipeline.predict(test_features)
+    expected_metrics = {
+        "test_auc": roc_auc_score(y_test, pipeline.predict_proba(test_features)[:, 1]),
+        "test_precision": precision_score(y_test, predictions, zero_division=0),
+        "test_recall": recall_score(y_test, predictions, zero_division=0),
+        "test_f1": f1_score(y_test, predictions, zero_division=0),
+    }
+    assert metrics == pytest.approx(expected_metrics)
+    assert json.loads((reports_dir / "test_metrics.json").read_text()) == metrics
+    assert "ROC-AUC" in (reports_dir / "test_metrics.md").read_text()
+    assert (
+        (reports_dir / "figures" / "roc_curve.png")
+        .read_bytes()
+        .startswith(b"\x89PNG\r\n\x1a\n")
+    )
 
 
 @pytest.mark.parametrize("models", [[], ["catboost", "catboost"], ["unknown"]])

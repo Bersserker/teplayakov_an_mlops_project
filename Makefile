@@ -12,9 +12,6 @@ MLFLOW_PORT ?= 5000
 MLFLOW_BACKEND_STORE_URI ?= sqlite:///artifacts/mlflow/mlflow.db
 MLFLOW_ARTIFACTS_DESTINATION ?= $(CURDIR)/artifacts/mlflow/mlartifacts
 MLFLOW_TRACKING_URI ?= http://127.0.0.1:$(MLFLOW_PORT)
-MODELS ?= log_reg random_forest catboost
-N_JOBS ?= -1
-DATA_PATH ?= data/processed/UCI_Credit_Card.csv
 
 #################################################################################
 # COMMANDS                                                                      #
@@ -39,15 +36,15 @@ clean:
 ## Lint using flake8, black, and isort (use `make format` to do formatting)
 .PHONY: lint
 lint:
-	flake8 teplayakov_an_mlops_project
-	isort --check --diff teplayakov_an_mlops_project
-	black --check teplayakov_an_mlops_project
+	uv run flake8 src tests
+	uv run isort --check --diff src tests
+	uv run black --check src tests
 
-## Format source code with black
+## Format source code with isort and black
 .PHONY: format
 format:
-	isort teplayakov_an_mlops_project
-	black teplayakov_an_mlops_project
+	uv run isort src tests
+	uv run black src tests
 
 
 
@@ -86,6 +83,19 @@ prepare-data:
 .PHONY: train
 train:
 	uv run python -m src.model_training.train
+
+## Start FastAPI server (localhost:8000 by default)
+.PHONY: api
+api:
+	uv run uvicorn src.api.app:app --host "$(APP_HOST)" --port "$(APP_PORT)"
+
+## Send sample requests to the running API
+.PHONY: test-api test_my_api test_api.py
+test-api:
+	uv run python -m src.api.test_api --port "$(APP_PORT)"
+
+test_my_api test_api.py: test-api
+
 
 ## Start MLflow UI and tracking API (localhost:5000 by default)
 .PHONY: mlflow

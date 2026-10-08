@@ -1,0 +1,14 @@
+services:
+  app:
+    build:
+      context: .                 # папка, где лежит Dockerfile
+      dockerfile: Dockerfile     # имя файла (можно не указывать, если это Dockerfile)
+    container_name: my-default-payment-app
+    ports:
+      - "8000:8000"              # хост:контейнер
+    volumes:
+      - ./models:/app/models:ro
+    environment:
+      - DEBUG=1
+      - DATABASE_URL=postgresql://user:pass@db:5432/mydb
+    restart: unless-stopped     # автоперезапуск при падении или рестарте хоста
