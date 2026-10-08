@@ -37,12 +37,16 @@ dependencies = [
     "pytest",
     "python-dotenv",
     "scikit-learn",
+    "seaborn>=0.13.2",
     "skops>=0.16.0",
     "tqdm",
     "typer",
     "uvicorn>=0.54.0",
 ]
 requires-python = "~=3.13.0"
+
+[tool.flit.module]
+name = "src"
 
 [tool.black]
 line-length = 88
@@ -74,5 +78,4 @@ dev = [
     "optuna>=5.0.0",
     "pytest>=9.1.1",
 ]
-
 

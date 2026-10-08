@@ -5,6 +5,16 @@
 PROJECT_NAME = teplayakov_an_mlops_project
 PYTHON_VERSION = 3.13
 PYTHON_INTERPRETER = python
+APP_HOST ?= 127.0.0.1
+APP_PORT ?= 8000
+MLFLOW_HOST ?= 127.0.0.1
+MLFLOW_PORT ?= 5000
+MLFLOW_BACKEND_STORE_URI ?= sqlite:///artifacts/mlflow/mlflow.db
+MLFLOW_ARTIFACTS_DESTINATION ?= $(CURDIR)/artifacts/mlflow/mlartifacts
+MLFLOW_TRACKING_URI ?= http://127.0.0.1:$(MLFLOW_PORT)
+MODELS ?= log_reg random_forest catboost
+N_JOBS ?= -1
+DATA_PATH ?= data/processed/UCI_Credit_Card.csv
 
 #################################################################################
 # COMMANDS                                                                      #
@@ -71,6 +81,19 @@ data:
 .PHONY: prepare-data 
 prepare-data:
 	uv run python -m src.data.prepare_dataset
+
+## Train and register the best credit default model
+.PHONY: train
+train:
+	uv run python -m src.model_training.train
+
+## Start MLflow UI and tracking API (localhost:5000 by default)
+.PHONY: mlflow
+mlflow:
+	mkdir -p artifacts/mlflow
+	uv run mlflow server --host "$(MLFLOW_HOST)" --port "$(MLFLOW_PORT)" \
+		--backend-store-uri "$(MLFLOW_BACKEND_STORE_URI)" \
+		--artifacts-destination "$(MLFLOW_ARTIFACTS_DESTINATION)"
 
 
 #################################################################################

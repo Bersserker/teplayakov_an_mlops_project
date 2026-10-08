@@ -3,6 +3,7 @@ from pathlib import Path
 import argparse
 from src.data.clean_dataset import clean_data
 from src.data.validation import PROCESSED_SCHEMA, RAW_SCHEMA
+from src.features.build_features import build_features
 import pandas as pd
 
 DATA_DIR = Path(__file__).resolve().parents[2] / "data"
@@ -15,7 +16,7 @@ def prepare_dataset(
 ) -> Path:
     """Загрузка исходного датасета, отчистка данных и сохранение валидированных данных"""
     raw = RAW_SCHEMA.validate(pd.read_csv(raw_path), lazy=True)
-    processed = PROCESSED_SCHEMA.validate(clean_data(raw), lazy=True)
+    processed = PROCESSED_SCHEMA.validate(build_features(clean_data(raw)), lazy=True)
     processed_path = Path(processed_path)
     processed_path.parent.mkdir(parents=True, exist_ok=True)
     processed.to_csv(processed_path, index=False)
