@@ -189,3 +189,12 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+
+.venv/
+.env
+__pycache__/
+.pytest_cache/
+/artifacts/mlflow/
+/models/*.joblib
+/models/*_reference.csv
+/reports/drift.json

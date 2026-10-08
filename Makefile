@@ -62,11 +62,15 @@ create_environment:
 # PROJECT RULES                                                                 #
 #################################################################################
 
-
-## Make dataset
+## Download dataset into data/raw
 .PHONY: data
-data: requirements
-	$(PYTHON_INTERPRETER) teplayakov_an_mlops_project/dataset.py
+data:
+	uv run python -m src.data.make_dataset
+
+## validate and clean the dataset into data/processed
+.PHONY: prepare-data 
+prepare-data:
+	uv run python -m src.data.prepare_dataset
 
 
 #################################################################################
