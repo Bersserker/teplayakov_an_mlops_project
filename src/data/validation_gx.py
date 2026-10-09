@@ -13,7 +13,7 @@ def main():
 
     data_source = context.data_sources.add_pandas_filesystem(
         name="credit_data_source",
-        base_directory= RAW_DATA_DIR,
+        base_directory=RAW_DATA_DIR,
     )
 
     asset = data_source.add_csv_asset(
@@ -48,11 +48,9 @@ def main():
 
     suite.add_expectation(
         gxe.ExpectColumnValuesToBeInSet(
-            column="default.payment.next.month",
-            value_set=[0, 1]
+            column="default.payment.next.month", value_set=[0, 1]
         )
     )
-
 
     suite = context.suites.add(suite)
 

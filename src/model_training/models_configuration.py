@@ -2,7 +2,6 @@ from catboost import CatBoostClassifier
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
 
-
 MODELS = {
     "log_reg": {
         "class": LogisticRegression,
@@ -25,4 +24,3 @@ MODELS = {
         "grid": {"iterations": [500, 1000], "depth": [4, 6]},
     },
 }
-

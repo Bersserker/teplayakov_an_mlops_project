@@ -4,10 +4,11 @@ from sklearn.impute import SimpleImputer
 from sklearn.model_selection import GridSearchCV, StratifiedKFold
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
+
 from src.model_training.models_configuration import MODELS
 
-def create_pipeline(
-    numeric_features, categorical_features, n_jobs=-1):
+
+def create_pipeline(numeric_features, categorical_features, n_jobs=-1):
     """Создадим пайплайн обучения"""
     models = list(MODELS.keys())
     grids = []
