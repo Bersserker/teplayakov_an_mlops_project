@@ -13,6 +13,7 @@ PROCESSED_DATA_PATH = PROCESSED_DATA_DIR / RAW_DATA_PATH.name
 
 MODELS_DIR = PROJECT_DIR / "models"
 BEST_MODEL_PATH = MODELS_DIR / "best_model.joblib"
+TRAIN_REF_DATA = MODELS_DIR / "train_reference.csv"
 TEST_REF_DATA = MODELS_DIR / "test_reference.csv"
 REPORTS_DIR = PROJECT_DIR / "reports"
 ARTIFACTS_DIR = PROJECT_DIR / "artifacts"
