@@ -1,8 +1,7 @@
-"""Models, constructor parameters, and hyperparameter grids."""
-
 from catboost import CatBoostClassifier
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
+
 
 MODELS = {
     "log_reg": {
@@ -27,4 +26,3 @@ MODELS = {
     },
 }
 
-MODEL_NAMES = tuple(MODELS)

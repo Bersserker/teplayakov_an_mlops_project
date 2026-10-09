@@ -1,5 +1,6 @@
 """Training, model selection, and saved artifact regression checks."""
 
+from functools import partial
 import importlib
 import json
 
@@ -9,10 +10,11 @@ import numpy as np
 import pandas as pd
 import pytest
 from sklearn.metrics import f1_score, precision_score, recall_score, roc_auc_score
+from sklearn.model_selection import ParameterGrid
 
 from src.data.validation import PROCESSED_SCHEMA
 from src.features.build_features import build_features
-from src.model_training.modeling import MODEL_NAMES
+from src.model_training.models_configuration import MODELS
 from src.model_training.pipeline import create_pipeline
 
 training = importlib.import_module("src.model_training.train")
@@ -37,22 +39,39 @@ def credit_data():
 
 SMALL_GRIDS = {
     "catboost": {"iterations": [5], "depth": [2]},
-    "log_reg": {"C": [1.0]},
+    "log_reg": {"C": [0.1, 1.0]},
     "random_forest": {"n_estimators": [5], "max_depth": [2]},
 }
 
 
-def test_search_compares_all_models(credit_data):
+@pytest.fixture
+def small_models(monkeypatch):
+    """Use small grids through the same configuration as production training."""
+    for name, config in MODELS.items():
+        monkeypatch.setitem(MODELS, name, {**config, "grid": SMALL_GRIDS[name]})
+    return MODELS
+
+
+def test_search_compares_all_models(credit_data, small_models):
     search = create_pipeline(
         training.NUMERIC_FEATURES,
         training.CATEGORICAL_FEATURES,
-        SMALL_GRIDS,
         n_jobs=1,
     )
     features = build_features(credit_data).replace([np.inf, -np.inf], np.nan)
     search.fit(features, credit_data["default"])
-    assert len(search.cv_results_["params"]) == len(MODEL_NAMES)
-    assert len({type(p["classifier"]) for p in search.cv_results_["params"]}) == 3
+    assert len(search.cv_results_["params"]) == sum(
+        len(ParameterGrid(config["grid"])) for config in small_models.values()
+    )
+    assert {type(p["classifier"]) for p in search.cv_results_["params"]} == {
+        config["class"] for config in small_models.values()
+    }
+    for config, grid in zip(small_models.values(), search.param_grid, strict=True):
+        assert {
+            key.removeprefix("classifier__"): value
+            for key, value in grid.items()
+            if key != "classifier"
+        } == config["grid"]
     # The preprocessor excludes the target and record identifier.
     changed = features.copy()
     changed["default"] = 1 - changed["default"]
@@ -60,18 +79,39 @@ def test_search_compares_all_models(credit_data):
     np.testing.assert_array_equal(search.predict(features), search.predict(changed))
 
 
-@pytest.mark.parametrize("name", MODEL_NAMES)
+# Known deprecations inside MLflow; keep other dependency warnings visible.
+@pytest.mark.filterwarnings(
+    r"ignore:The ``noload`` loader strategy is deprecated:"
+    r"sqlalchemy.exc.SADeprecationWarning:mlflow\.store\.tracking\.sqlalchemy_store"
+)
+@pytest.mark.filterwarnings(
+    r"ignore:For backward compatibility, 'str' dtypes are included by select_dtypes:"
+    r"pandas.errors.Pandas4Warning:mlflow\.tracking\.client"
+)
+@pytest.mark.parametrize("name", MODELS.keys())
 def test_train_saves_and_registers_reloadable_model(
-    name, credit_data, tmp_path, monkeypatch
+    name, credit_data, small_models, tmp_path, monkeypatch
 ):
+    for other_name in list(small_models):
+        if other_name != name:
+            monkeypatch.delitem(small_models, other_name)
+    monkeypatch.setattr(training, "create_pipeline", partial(create_pipeline, n_jobs=1))
+    # MLflow's default artifact location is relative to the working directory.
+    monkeypatch.chdir(tmp_path)
     monkeypatch.setattr(training, "MLFLOW_DIR", tmp_path / "mlflow")
     model_path = tmp_path / "models" / "best_model.joblib"
     monkeypatch.setattr(training, "BEST_MODEL_PATH", model_path)
     reports_dir = tmp_path / "reports"
     monkeypatch.setattr(training, "REPORTS_DIR", reports_dir)
-    pipeline, metrics = training.train(
-        credit_data, models=[name], param_grid={name: SMALL_GRIDS[name]}, n_jobs=1
-    )
+    pipeline, metrics = training.train(credit_data)
+    assert isinstance(pipeline.named_steps["classifier"], small_models[name]["class"])
+    client = mlflow.MlflowClient()
+    experiment = client.get_experiment_by_name("credit-default")
+    runs = client.search_runs([experiment.experiment_id])
+    assert len(runs) == 1
+    assert runs[0].info.status == "FINISHED"
+    assert runs[0].data.params["candidate_models"] == name
+    assert runs[0].data.params["model_type"] == small_models[name]["class"].__name__
     features = (
         build_features(credit_data)
         .replace([np.inf, -np.inf], np.nan)[
@@ -111,9 +151,3 @@ def test_train_saves_and_registers_reloadable_model(
         .read_bytes()
         .startswith(b"\x89PNG\r\n\x1a\n")
     )
-
-
-@pytest.mark.parametrize("models", [[], ["catboost", "catboost"], ["unknown"]])
-def test_invalid_model_selection(models):
-    with pytest.raises(ValueError):
-        create_pipeline(["age"], ["sex"], models=models)

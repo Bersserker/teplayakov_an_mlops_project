@@ -96,6 +96,10 @@ test-api:
 
 test_my_api test_api.py: test-api
 
+## PSI test on test
+.PHONY: psi_test
+psi_test:
+	uv run python -m src.monitoring.simulate --port "$(APP_PORT)"
 
 ## Start MLflow UI and tracking API (localhost:5000 by default)
 .PHONY: mlflow

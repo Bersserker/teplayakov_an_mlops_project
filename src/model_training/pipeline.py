@@ -4,28 +4,17 @@ from sklearn.impute import SimpleImputer
 from sklearn.model_selection import GridSearchCV, StratifiedKFold
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
-
-from src.model_training.modeling import MODEL_NAMES, MODELS
-
+from src.model_training.models_configuration import MODELS
 
 def create_pipeline(
-    numeric_features, categorical_features, parameters=None, *, models=None, n_jobs=-1
-):
-    """Compare selected models; parameters maps model names to custom grids."""
-    models = list(MODEL_NAMES if models is None else models)
-    if not models or len(set(models)) != len(models):
-        raise ValueError("Select at least one model, without duplicates.")
-    if parameters is not None and set(parameters) - set(models):
-        raise ValueError("Parameter grids must be keyed by selected model names.")
+    numeric_features, categorical_features, n_jobs=-1):
+    """Создадим пайплайн обучения"""
+    models = list(MODELS.keys())
     grids = []
     for name in models:
-        if name not in MODELS:
-            raise ValueError(
-                f"Unknown model {name!r}. Choose from: {', '.join(MODEL_NAMES)}"
-            )
         config = MODELS[name]
         estimator = config["class"](**config["params"])
-        grid = (parameters or {}).get(name, config["grid"])
+        grid = config["grid"]
         grids.append(
             {
                 "classifier": [estimator],
