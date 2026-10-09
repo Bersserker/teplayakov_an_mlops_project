@@ -3,8 +3,34 @@ stages:
     cmd: uv run python -m src.data.prepare_dataset
     deps:
       - data/raw/UCI_Credit_Card.csv
+      - src/config.py
       - src/data/prepare_dataset.py
       - src/data/clean_dataset.py
       - src/data/validation.py
+      - src/features/build_features.py
     outs:
       - data/processed
+
+  train:
+    cmd: uv run python -m src.model_training.train
+    deps:
+      - data/processed/UCI_Credit_Card.csv
+      - src/config.py
+      - src/data/validation.py
+      - src/features/build_features.py
+      - src/model_training/train.py
+      - src/model_training/pipeline.py
+      - src/model_training/models_configuration.py
+      - src/model_training/training_data.py
+      - src/model_training/evaluation.py
+      - pyproject.toml
+      - uv.lock
+    outs:
+      - models/best_model.joblib
+      - models/train_reference.csv
+      - models/test_reference.csv
+      - reports/figures/roc_curve.png
+      - reports/test_metrics.md
+    metrics:
+      - reports/test_metrics.json:
+          cache: false
