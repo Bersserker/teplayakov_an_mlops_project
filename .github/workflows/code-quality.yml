@@ -43,4 +43,4 @@ jobs:
           PY
 
       - name: Validate data with Great Expectations
-        run: python src/data/validation_gx.py
+        run: python -m src.data.validation_gx
