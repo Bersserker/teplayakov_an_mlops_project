@@ -5,7 +5,7 @@ from sklearn.model_selection import GridSearchCV, StratifiedKFold
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
-from src.model_training.modeling import MODEL_NAMES, PARAM_GRIDS, build_model
+from src.model_training.modeling import MODEL_NAMES, MODELS
 
 
 def create_pipeline(
@@ -19,8 +19,13 @@ def create_pipeline(
         raise ValueError("Parameter grids must be keyed by selected model names.")
     grids = []
     for name in models:
-        estimator = build_model(name)
-        grid = (parameters or {}).get(name, PARAM_GRIDS[name])
+        if name not in MODELS:
+            raise ValueError(
+                f"Unknown model {name!r}. Choose from: {', '.join(MODEL_NAMES)}"
+            )
+        config = MODELS[name]
+        estimator = config["class"](**config["params"])
+        grid = (parameters or {}).get(name, config["grid"])
         grids.append(
             {
                 "classifier": [estimator],

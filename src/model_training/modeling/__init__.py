@@ -1,26 +1,30 @@
-"""Model factories and their default hyperparameter grids."""
+"""Models, constructor parameters, and hyperparameter grids."""
 
-from .catboost import build_model as catboost
-from .log_reg import build_model as log_reg
-from .random_forest import build_model as random_forest
+from catboost import CatBoostClassifier
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.linear_model import LogisticRegression
 
-MODEL_FACTORIES = {
-    "log_reg": log_reg,
-    "random_forest": random_forest,
-    "catboost": catboost,
+MODELS = {
+    "log_reg": {
+        "class": LogisticRegression,
+        "params": {"max_iter": 2000, "random_state": 42},
+        "grid": {"C": [0.1, 1.0, 10.0]},
+    },
+    "random_forest": {
+        "class": RandomForestClassifier,
+        "params": {"random_state": 42, "n_jobs": 1},
+        "grid": {"n_estimators": [50, 100], "max_depth": [5, None]},
+    },
+    "catboost": {
+        "class": CatBoostClassifier,
+        "params": {
+            "random_seed": 42,
+            "verbose": False,
+            "allow_writing_files": False,
+            "thread_count": 1,
+        },
+        "grid": {"iterations": [500, 1000], "depth": [4, 6]},
+    },
 }
 
-MODEL_NAMES = tuple(MODEL_FACTORIES)
-PARAM_GRIDS = {
-    "log_reg": {"C": [0.1, 1.0, 10.0]},
-    "random_forest": {"n_estimators": [50, 100], "max_depth": [5, None]},
-    "catboost": {"iterations": [500, 1000], "depth": [4, 6]},
-}
-
-
-def build_model(name):
-    if name not in MODEL_NAMES:
-        raise ValueError(
-            f"Unknown model {name!r}. Choose from: {', '.join(MODEL_NAMES)}"
-        )
-    return MODEL_FACTORIES[name]({})
+MODEL_NAMES = tuple(MODELS)
