@@ -1,4 +1,4 @@
-"""Calculate scalar training and held-out metrics for credit models."""
+"""Оценка модели и сохраняем результаты"""
 
 import json
 from pathlib import Path

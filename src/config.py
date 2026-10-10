@@ -1,4 +1,4 @@
-"""Shared locations for data, trained models, reports, and MLflow."""
+"""Расположение всех тестовых данных, обучающих данных , моделей и MLflow."""
 
 import os
 from pathlib import Path

@@ -1,4 +1,5 @@
-# pipeline.py
+"""Создаем пайплайн обучения"""
+
 from sklearn.compose import ColumnTransformer
 from sklearn.impute import SimpleImputer
 from sklearn.model_selection import GridSearchCV, StratifiedKFold

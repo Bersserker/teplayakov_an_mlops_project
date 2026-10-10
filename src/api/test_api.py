@@ -1,4 +1,4 @@
-"""Send sample rows from the raw dataset to the credit scoring API."""
+"""Тестовый скрипт для проверки работы API."""
 
 import argparse
 
@@ -9,7 +9,7 @@ from src.config import RAW_DATA_PATH
 
 
 def test_my_api(line, port=8000):
-    """Send named credit fields and print prediction and default_probability."""
+    """Запрос к API и вывод результата."""
     df = pd.read_csv(RAW_DATA_PATH).drop(columns=["ID", "default.payment.next.month"])
     df.columns = df.columns.str.lower()
     test_sample = df.iloc[[line]].to_dict(orient="records")[0]

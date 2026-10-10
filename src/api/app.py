@@ -1,4 +1,4 @@
-"""Simple API for the saved credit scoring pipeline."""
+"""REST API для модели с помощью FastAPI."""
 
 from functools import lru_cache
 
@@ -15,6 +15,7 @@ from src.features.build_features import build_features
 
 @lru_cache(maxsize=1)
 def load_model():
+    """Загружает модель из файла."""
     if not BEST_MODEL_PATH.is_file():
         raise HTTPException(status_code=503, detail="Model is missing. Run make train.")
     return joblib.load(BEST_MODEL_PATH)
@@ -25,17 +26,20 @@ app = FastAPI(title="Credit Scoring API")
 
 @app.get("/", include_in_schema=False)
 async def root():
+    """Редирект на документацию."""
     return RedirectResponse(url="/docs")
 
 
 @app.get("/health")
 def health():
+    """Проверяет статус сервера."""
     load_model()
     return {"status": "ok"}
 
 
 @app.post("/predict", response_model=CreditResponse)
 def predict(request: CreditRequest):
+    """Делает предсказание с помощью модели."""
     model = load_model()
     features = build_features(pd.DataFrame([request.model_dump()]))
     features = (

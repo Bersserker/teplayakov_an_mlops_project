@@ -1,4 +1,4 @@
-"""Simple API for the saved credit scoring pipeline."""
+"""Pydantic модели для кредитного скоринга."""
 
 from typing import Annotated, Literal
 

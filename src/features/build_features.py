@@ -1,4 +1,4 @@
-"""Feature engineering. Implementation pending."""
+"""Создаем дополнительные фичи"""
 
 import pandas as pd
 

@@ -1,10 +1,10 @@
-"""Population Stability Index for one-dimensional numeric distributions."""
+"""Расчет Population Stability"""
 
 import numpy as np
 
 
 def psi_calculation(ref, new, bins=10):
-    """Use reference quantiles; compare below/equal/above for constant references."""
+    """Расчет Population Stability"""
     if isinstance(bins, (bool, np.bool_)) or not isinstance(bins, (int, np.integer)):
         raise ValueError("bins должен быть целым числом не меньше 2")
     if bins < 2:

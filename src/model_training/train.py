@@ -1,4 +1,4 @@
-"""Prepare data, search the model grids, and log the best model with MLflow."""
+"""Подготавливаем данные для обучения модели, учим модели и сохраняем результаты"""
 
 from pathlib import Path
 
@@ -20,6 +20,7 @@ from src.model_training.training_data import (
 
 
 def train(df):
+    """Обучаем модель"""
     search = create_pipeline(NUMERIC_FEATURES, CATEGORICAL_FEATURES)
     # print(search)
     reference, (X_train, X_test, y_train, y_test) = prepare_training_data(df)
@@ -77,10 +78,10 @@ def train(df):
             registered_model_name="CreditDefaultModel",
             input_example=example,
             signature=infer_signature(example, pipeline.predict(example)),
-            # CatBoost's native extension cannot be saved with skops.
+            # Native boosting extensions are serialized with cloudpickle.
             serialization_format=(
                 "cloudpickle"
-                if type(classifier).__name__ == "CatBoostClassifier"
+                if type(classifier).__name__ in {"CatBoostClassifier", "XGBClassifier"}
                 else "skops"
             ),
             skops_trusted_types=[

@@ -1,4 +1,4 @@
-"""Prepare training data and persist the model with its reference splits."""
+"""Подготавливаем данные для обучения модели и сохраняем ссылки на разбиения"""
 
 from pathlib import Path
 
@@ -33,7 +33,7 @@ CATEGORICAL_FEATURES = [
 
 
 def prepare_training_data(df: pd.DataFrame):
-    """Validate data, build features, and make a reproducible stratified split."""
+    """Подготавливаем данные для обучения модели и сохраняем ссылки на разбиения"""
     reference_data = PROCESSED_SCHEMA.validate(df, lazy=True)
     features = build_features(reference_data)
     X = (

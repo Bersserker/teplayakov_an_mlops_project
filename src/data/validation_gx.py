@@ -1,3 +1,5 @@
+# Дополнительная проверка данных GITHUB actions
+
 from pathlib import Path
 
 import great_expectations as gx

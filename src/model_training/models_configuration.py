@@ -1,6 +1,9 @@
+"""Конфигурационный файл для моделей"""
+
 from catboost import CatBoostClassifier
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
+from xgboost import XGBClassifier
 
 MODELS = {
     "log_reg": {
@@ -31,6 +34,21 @@ MODELS = {
             "max_depth": [5, 10, None],
             "min_samples_split": [2, 5, 10],
             "min_samples_leaf": [1, 2, 4],
+        },
+    },
+    "xgboost": {
+        "class": XGBClassifier,
+        "params": {
+            "random_state": 42,
+            "n_jobs": 1,
+            "objective": "binary:logistic",
+            "eval_metric": "logloss",
+            "tree_method": "hist",
+        },
+        "grid": {
+            "n_estimators": [100, 300, 500],
+            "max_depth": [3, 5, 7],
+            "learning_rate": [0.03, 0.1, 0.3],
         },
     },
     "catboost": {
