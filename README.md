@@ -4,76 +4,206 @@
     <img src="https://img.shields.io/badge/CCDS-Project%20template-328F97?logo=cookiecutter" />
 </a>
 
-Классификация кредитного дефолта
+## Модель оценки вероятности дефолта (PD-модель)
 
-Пути к исходным и обработанным данным, обученной модели, отчётам и артефактам
-MLflow задаются в [src/config.py](src/config.py). Пути вычисляются относительно
-корня проекта; расположение MLflow также можно задать переменной `MLFLOW_DIR`.
+**Цель проекта:** реализовать сквозной автоматизированный пайплайн подготовки данных, обучения, тестирования, развёртывания и мониторинга модели для предсказания вероятности дефолта клиента (Probability of Default).
 
-## Project Organization
+## О проекте
 
-```
-├── LICENSE            <- Open-source license if one is chosen
-├── Makefile           <- Makefile with convenience commands like `make data` or `make train`
-├── README.md          <- The top-level README for developers using this project.
-├── data
-│   ├── external       <- Data from third party sources.
-│   ├── interim        <- Intermediate data that has been transformed.
-│   ├── processed      <- The final, canonical data sets for modeling.
-│   └── raw            <- The original, immutable data dump.
-│
-├── docs               <- A default mkdocs project; see www.mkdocs.org for details
-│
-├── models             <- Trained and serialized models, model predictions, or model summaries
-│
-├── notebooks          <- Jupyter notebooks. Naming convention is a number (for ordering),
-│                         the creator's initials, and a short `-` delimited description, e.g.
-│                         `1.0-jqp-initial-data-exploration`.
-│
-├── pyproject.toml     <- Project configuration file with package metadata for 
-│                         teplayakov_an_mlops_project and configuration for tools like black
-│
-├── references         <- Data dictionaries, manuals, and all other explanatory materials.
-│
-├── reports            <- Generated analysis as HTML, PDF, LaTeX, etc.
-│   └── figures        <- Generated graphics and figures to be used in reporting
-│
-├── requirements.txt   <- The requirements file for reproducing the analysis environment, e.g.
-│                         generated with `pip freeze > requirements.txt`
-│
-├── setup.cfg          <- Configuration file for flake8
-│
-└── teplayakov_an_mlops_project   <- Source code for use in this project.
-    │
-    ├── __init__.py             <- Makes teplayakov_an_mlops_project a Python module
-    │
-    ├── config.py               <- Store useful variables and configuration
-    │
-    ├── dataset.py              <- Scripts to download or generate data
-    │
-    ├── features.py             <- Code to create features for modeling
-    │
-    ├── modeling                
-    │   ├── __init__.py 
-    │   ├── predict.py          <- Code to run model inference with trained models          
-    │   └── train.py            <- Code to train models
-    │
-    └── plots.py                <- Code to create visualizations
+Проект основан на **Default of Credit Card Clients Dataset**, который загружается через KaggleHub (`uciml/default-of-credit-card-clients-dataset`). Датасет содержит демографические характеристики, кредитные лимиты, историю платежей и выписки по счетам клиентов кредитных карт на Тайване за период с апреля по сентябрь 2005 года. Целевая переменная `default = 1` обозначает дефолт клиента.
+
+Ключевые возможности:
+
+- валидация исходных и обработанных данных с помощью Pandera;
+- очистка данных и построение признаков: сочетание пола и семейного положения, возрастные группы, относительные расходы;
+- сравнение LogisticRegression, RandomForestClassifier и CatBoostClassifier с помощью GridSearchCV;
+- оценка ROC-AUC, Precision, Recall и F1-Score на отложенной выборке;
+- версионирование данных и артефактов через DVC, регистрация экспериментов и модели в MLflow;
+- HTTP API на FastAPI и запуск в Docker;
+- проверка дрейфа признаков и вероятностей предсказания с помощью PSI.
+
+Пути к данным, модели, отчётам и артефактам определены в [src/config.py](src/config.py) относительно корня проекта. Переменная окружения `MLFLOW_DIR` позволяет изменить каталог хранения MLflow; по умолчанию используется `artifacts/mlflow`.
+
+## Структура файлов и папок
+
+```text
+├── artifacts/mlflow/          # база экспериментов и артефакты MLflow
+├── data/
+│   ├── raw/                   # исходный UCI_Credit_Card.csv
+│   ├── raw.dvc                # DVC-описание исходных данных
+│   └── processed/             # очищенные данные с новыми признаками
+├── docker-compose.yml         # запуск API с подключением каталога models
+├── Dockerfile                 # образ API
+├── dvc.lock                   # хеши зависимостей и результатов пайплайна
+├── dvc.yaml                   # этапы prepare и train
+├── Makefile                   # команды установки, обучения, API и проверок
+├── models/                    # модель joblib и эталонные выборки
+├── notebooks/                 # исследовательские ноутбуки
+├── reports/                   # метрики и ROC-кривая
+├── pyproject.toml             # зависимости и настройки инструментов
+├── README.md                  # документация проекта
+├── setup.cfg                  # настройки flake8
+├── src/
+│   ├── api/                   # FastAPI, схемы запросов и клиент проверки API
+│   ├── data/                  # загрузка, очистка и валидация данных
+│   ├── features/              # построение признаков
+│   ├── model_training/        # подбор моделей, обучение и оценка качества
+│   ├── monitoring/            # расчёт PSI и симуляция дрейфа
+│   └── config.py              # пути к данным и артефактам
+├── tests/                     # тесты очистки, валидации и мониторинга
+└── uv.lock                    # зафиксированные версии зависимостей
 ```
 
---------
+Каталоги данных и артефактов создаются при запуске соответствующих этапов.
 
-### Метрики качества модели
+## Установка и запуск
 
-Обучение запускается командой `make train` без аргументов командной строки.
-Модели и сетки параметров заданы в `src/model_training/modeling/__init__.py`.
+Требуются Python **3.13**, `uv` и `make`. Все команды выполняются из корня проекта. Для контейнерного запуска нужны Docker и Docker Compose.
 
-При запуске `make train` лучшая модель оценивается на отложенной тестовой
-выборке (20% данных, стратифицированное разбиение с `random_state=42`).
-ROC-AUC рассчитывается по вероятностям дефолта, а Precision, Recall и F1-Score —
-по предсказаниям положительного класса `default = 1`.
+### Подготовка окружения и данных
 
-Результаты сохраняются в [reports/test_metrics.md](reports/test_metrics.md),
-числовые значения — в [reports/test_metrics.json](reports/test_metrics.json),
-ROC-кривая — в [reports/figures/roc_curve.png](reports/figures/roc_curve.png).
-Эти файлы также сохраняются как артефакты запуска MLflow.
+```bash
+make create_environment
+make requirements
+make data
+```
+
+`make requirements` выполняет `uv sync`, включая зависимости для разработки. Остальные команды пайплайна используют `uv run`, поэтому активация окружения для них не требуется.
+
+`make data` загружает `data/raw/UCI_Credit_Card.csv`, если файл отсутствует, и сразу выполняет очистку, построение признаков и валидацию. Для загрузки нужен доступ к Kaggle. Если исходный CSV уже есть, повторно подготовить данные можно без скачивания:
+
+```bash
+make prepare-data
+```
+
+Результат подготовки — `data/processed/UCI_Credit_Card.csv`.
+
+### Обучение и метрики качества
+
+```bash
+make train
+```
+
+Модели и сетки гиперпараметров заданы в [src/model_training/models_configuration.py](src/model_training/models_configuration.py). GridSearchCV выбирает лучшую модель по **accuracy** на пяти стратифицированных фолдах. Полный перебор может занимать значительное время.
+
+Перед обучением данные делятся на обучающую и тестовую выборки: 80% / 20%, со стратификацией по целевой переменной и `random_state=42`. После подбора лучшая модель оценивается на отложенной тестовой выборке. ROC-AUC рассчитывается по вероятностям дефолта, Precision, Recall и F1-Score — по предсказаниям положительного класса `default = 1`.
+
+Обучение сохраняет:
+
+- `models/best_model.joblib` — обученный пайплайн предобработки и классификации;
+- `models/train_reference.csv` и `models/test_reference.csv` — эталонные выборки для мониторинга;
+- [reports/test_metrics.md](reports/test_metrics.md) — отчёт о качестве;
+- [reports/test_metrics.json](reports/test_metrics.json) — числовые значения метрик;
+- [reports/figures/roc_curve.png](reports/figures/roc_curve.png) — ROC-кривую.
+
+В MLflow создаётся эксперимент `credit-default`, логируются параметры, результаты кросс-валидации, метрики и отчёты; модель регистрируется под именем `CreditDefaultModel`. Обучение напрямую использует локальную SQLite-базу MLflow, поэтому запуск сервера MLflow перед обучением не требуется.
+
+### Просмотр экспериментов
+
+```bash
+make mlflow
+```
+
+Интерфейс доступен по адресу `http://127.0.0.1:5000`. По умолчанию сервер открывает базу `artifacts/mlflow/mlflow.db`.
+
+Если обучение выполнялось с другим `MLFLOW_DIR`, при запуске сервера задайте соответствующие `MLFLOW_BACKEND_STORE_URI` и `MLFLOW_ARTIFACTS_DESTINATION`: команда `make mlflow` использует собственные настройки путей из Makefile.
+
+### Запуск и проверка API
+
+После обучения запустите API в отдельном терминале:
+
+```bash
+make api
+```
+
+Документация Swagger доступна по адресу `http://127.0.0.1:8000/docs`.
+
+| Метод | Путь | Назначение |
+| --- | --- | --- |
+| GET | `/` | Перенаправление на Swagger |
+| GET | `/health` | Проверка доступности обученной модели |
+| POST | `/predict` | Класс и вероятность дефолта для одного клиента |
+
+Запрос `/predict` содержит 23 исходных признака в нижнем регистре: `limit_bal`, `sex`, `education`, `marriage`, `age`, `pay_0`, `pay_2`–`pay_6`, `bill_amt1`–`bill_amt6` и `pay_amt1`–`pay_amt6`. Поля `ID`, целевая переменная и дополнительные признаки не передаются; новые признаки API рассчитывает самостоятельно. Все поля обязательны, лишние поля запрещены. Полная схема и ограничения доступны в Swagger и [src/api/models.py](src/api/models.py).
+
+Пример запроса:
+
+```bash
+curl -X POST http://127.0.0.1:8000/predict \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "limit_bal": 20000, "sex": 2, "education": 2, "marriage": 1, "age": 24,
+    "pay_0": 2, "pay_2": 2, "pay_3": -1, "pay_4": -1, "pay_5": -2, "pay_6": -2,
+    "bill_amt1": 3913, "bill_amt2": 3102, "bill_amt3": 689,
+    "bill_amt4": 0, "bill_amt5": 0, "bill_amt6": 0,
+    "pay_amt1": 0, "pay_amt2": 689, "pay_amt3": 0,
+    "pay_amt4": 0, "pay_amt5": 0, "pay_amt6": 0
+  }'
+```
+
+Ответ содержит `prediction` (0 или 1) и `default_probability` (от 0 до 1). Если `models/best_model.joblib` отсутствует, `/health` и `/predict` возвращают HTTP 503; некорректный запрос возвращает HTTP 422.
+
+В другом терминале можно отправить два примера из исходного датасета:
+
+```bash
+make test-api
+```
+
+Чтобы изменить порт, используйте одинаковое значение для сервера и клиентов:
+
+```bash
+make api APP_PORT=8123
+# В другом терминале:
+make test-api APP_PORT=8123
+```
+
+После замены модели перезапустите API: загруженная модель кэшируется в процессе.
+
+### Мониторинг стабильности (PSI)
+
+При работающем API и наличии эталонных выборок выполните:
+
+```bash
+make psi_test
+```
+
+Скрипт сравнивает обучающую выборку с тестовой и с её изменённой копией, где `limit_bal` умножен на 0.7. Для каждого сравнения в консоль выводятся PSI кредитного лимита и PSI вероятности дефолта. Предсказания запрашиваются по одной записи, поэтому проверка полного датасета может занимать время. Для другого порта используйте `make psi_test APP_PORT=8123`.
+
+## Запуск в Docker
+
+Сначала обучите модель локально командой `make train`, затем запустите:
+
+```bash
+docker compose up --build -d
+docker compose logs -f app
+```
+
+API доступен по адресу `http://127.0.0.1:8000/docs`. Compose подключает локальный каталог `models` к `/app/models` в режиме чтения; обучение при запуске контейнера не выполняется. Проверка состояния контейнера обращается к `/health` и требует наличия модели.
+
+Остановка:
+
+```bash
+docker compose down
+```
+
+## Воспроизведение пайплайна с DVC
+
+Исходные данные описаны в `data/raw.dvc`, а этапы подготовки и обучения — в [dvc.yaml](dvc.yaml). При наличии исходного CSV запустите:
+
+```bash
+uv run dvc repro
+uv run dvc metrics show
+```
+
+DVC выполняет изменившиеся этапы `prepare` и `train`, отслеживает обработанные данные, модель, эталонные выборки и отчёты. Загрузка исходного датасета не входит в DVC-пайплайн: при отсутствии файла сначала выполните `make data`. Для получения данных через `uv run dvc pull` требуется настроенное DVC remote с загруженными артефактами.
+
+## Проверки проекта
+
+```bash
+uv run pytest tests
+make lint
+```
+
+Тесты проверяют очистку данных, схемы валидации и мониторинг дрейфа. `make test` также запускает тесты, но использует `python` текущего окружения; перед его вызовом активируйте `.venv` командой `source .venv/bin/activate`. `make test-api` отдельно проверяет запущенный HTTP-сервис.
+
+`make lint` проверяет код с помощью flake8, isort и black; `make format` применяет форматирование. Список доступных команд выводится через `make help`.
